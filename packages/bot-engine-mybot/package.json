@@ -1,12 +1,9 @@
 {
-    "name": "@ih3t/bot-worker",
+    "name": "@ih3t/bot-engine-mybot",
     "version": "0.0.0",
     "private": true,
     "type": "module",
     "dependencies": {
-        "@ih3t/bot-engine-dummy": "workspace:*",
-        "@ih3t/bot-engine-seal": "workspace:*",
-        "@ih3t/bot-engine-mybot": "workspace:*",
         "@ih3t/shared": "workspace:*"
     },
     "exports": {
