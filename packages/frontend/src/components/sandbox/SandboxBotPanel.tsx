@@ -29,7 +29,7 @@ function getBotCapabilitiesLabel(botCapabilities: Readonly<BotEngineCapabilities
 type SandboxBotPanelProps = {
     isOpen: boolean
 
-    selectedFactory: SandboxBotEngineInfo | null,
+    selectedFactories: Record<SandboxPlayerSlot, SandboxBotEngineInfo | null>,
 
     botDisplayName: string | null
     botCapabilities: Readonly<BotEngineCapabilities> | null
@@ -42,7 +42,8 @@ type SandboxBotPanelProps = {
     botErrorMessage: string | null
     onClose: () => void
     onOpen: () => void
-    onChangeBotEngine: () => void
+    onChangeBotEngine: (playerSlot: SandboxPlayerSlot) => void
+    onStartBotMatch: () => void
     onBotPlayerModeChange: (playerSlot: SandboxPlayerSlot, nextMode: SandboxPlayerMode) => void
     onBotTimeoutMsChange: (timeoutMs: number) => void
 };
@@ -52,7 +53,7 @@ function SandboxBotPanel({
     onOpen,
     onClose,
 
-    selectedFactory,
+    selectedFactories,
 
     botDisplayName,
     botCapabilities,
@@ -65,10 +66,16 @@ function SandboxBotPanel({
     isCurrentTurnBotControlled,
     botErrorMessage,
     onChangeBotEngine,
+    onStartBotMatch,
     onBotPlayerModeChange,
     onBotTimeoutMsChange,
 }: Readonly<SandboxBotPanelProps>) {
     const capabilityLabel = getBotCapabilitiesLabel(botCapabilities);
+    const selectedEngineLabels = {
+        'player-1': selectedFactories[`player-1`]?.displayName ?? null,
+        'player-2': selectedFactories[`player-2`]?.displayName ?? null,
+    };
+
     return (
         <GameHudShell
             isOpen={isOpen}
@@ -102,40 +109,30 @@ function SandboxBotPanel({
                 </h2>
 
                 <div className="mt-2 text-sm leading-6 text-slate-300">
-                    Add a bot to either side, adjust the request timeout, and switch back to human control whenever you want.
+                    Choose a bot engine for either side, start a bot-vs-bot match, and switch back to human control whenever you want.
                 </div>
             </div>
 
             <div className="mt-4 items-center grid grid-cols-[1fr_auto] gap-1 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
                 <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                        Engine
+                        Current Engine
                     </div>
 
                     <div className="mt-1 text-sm font-semibold text-white">
-                        {selectedFactory?.displayName ?? `None`}
+                        {botDisplayName ?? `None loaded`}
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={onChangeBotEngine}
-                    className="rounded-full ml-3 border border-white/12 bg-white/8 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/12"
-                >
-                    Change
-                </button>
-
                 <div className="col-span-2 text-xs leading-5 text-slate-300">
-                    {selectedFactory?.description()} 
-                    {` `}
-                    {capabilityLabel}
+                    {capabilityLabel ?? `Select an engine for a player below.`}
                 </div>
             </div>
 
             <SandboxBotControls
-                botDisplayName={botDisplayName}
                 botCapabilities={botCapabilities}
                 botAvailabilityMessage={botAvailabilityMessage}
+                selectedEngineLabels={selectedEngineLabels}
                 playerModes={botPlayerModes}
                 currentTurnPlayerSlot={currentTurnPlayerSlot}
                 timeoutMs={botTimeoutMs}
@@ -143,6 +140,8 @@ function SandboxBotPanel({
                 isCurrentTurnBotControlled={isCurrentTurnBotControlled}
                 botErrorMessage={botErrorMessage}
                 onPlayerModeChange={onBotPlayerModeChange}
+                onChangePlayerEngine={onChangeBotEngine}
+                onStartBotMatch={onStartBotMatch}
                 onTimeoutMsChange={onBotTimeoutMsChange}
             />
         </GameHudShell>

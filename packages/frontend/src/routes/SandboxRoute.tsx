@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'react-toastify';
 
+import BoardHelp from "../components/game-screen/BoardHelp.tsx";
 import GameBoardCanvas from '../components/game-screen/GameBoardCanvas';
 import useGameBoard from '../components/game-screen/useGameBoard';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
@@ -41,7 +42,6 @@ import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
 import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/routeMetadata';
 import type { SandboxRouteState } from './sandboxRouteState';
-import BoardHelp from "../components/game-screen/BoardHelp.tsx";
 
 type SandboxSnapshot = {
     positionName: string | null
@@ -197,7 +197,11 @@ function SandboxRoute() {
     const [isCopyingShareUrl, setIsCopyingShareUrl] = useState(false);
     const [botPlayerModes, setBotPlayerModes] = useState(() => createDefaultSandboxPlayerModes());
     const [botTimeoutMs, setBotTimeoutMs] = useState(() => readSandboxBotTimeoutMs());
-    const [selectedBotEngine, setSelectedBotEngine] = useState<SandboxBotEngineInfo | null>(null);
+    const [selectedBotEngines, setSelectedBotEngines] = useState<Record<SandboxPlayerSlot, SandboxBotEngineInfo | null>>({
+        'player-1': null,
+        'player-2': null,
+    });
+    const [botFactoryPickerSlot, setBotFactoryPickerSlot] = useState<SandboxPlayerSlot | null>(null);
     const [isBotPanelOpen, setIsBotPanelOpen] = useState(false);
     const [isBotFactoryModalOpen, setIsBotFactoryModalOpen] = useState(false);
     const cleanBoardStateRef = useRef(createSandboxGameState());
@@ -217,6 +221,7 @@ function SandboxRoute() {
     const isAuthenticated = Boolean(account !== null);
     const currentTurnPlayerSlot = currentGameState.currentTurnPlayerId ? getSandboxPlayerSlot(currentGameState.currentTurnPlayerId)
         : null;
+    const currentTurnBotEngine = currentTurnPlayerSlot ? selectedBotEngines[currentTurnPlayerSlot] : null;
     const isCurrentTurnBotControlled = currentTurnPlayerSlot
         ? botPlayerModes[currentTurnPlayerSlot] === `bot`
         : false;
@@ -256,7 +261,7 @@ function SandboxRoute() {
     const sandboxBotController = useSandboxBotController({
         gameState: currentGameState,
         botTurnEnabled: isBotPlaybackEnabled,
-        botFactory: selectedBotEngine,
+        botFactory: currentTurnBotEngine,
         playerModes: botPlayerModes,
         timeoutMs: botTimeoutMs,
         resolvePlayerSlot: getSandboxPlayerSlot,
@@ -457,11 +462,14 @@ function SandboxRoute() {
             'player-1': routeBotGame.botPlayerSlot === `player-1` ? `bot` : `human`,
             'player-2': routeBotGame.botPlayerSlot === `player-2` ? `bot` : `human`,
         });
-        setSelectedBotEngine(
-            kSandboxBotEngines.find((engine) => engine.name === routeBotGame.engineName)
-            ?? kSandboxBotEngines[0]
-            ?? null,
-        );
+        setSelectedBotEngines({
+            'player-1': routeBotGame.botPlayerSlot === `player-1`
+                ? kSandboxBotEngines.find((engine) => engine.name === routeBotGame.engineName) ?? kSandboxBotEngines[0] ?? null
+                : null,
+            'player-2': routeBotGame.botPlayerSlot === `player-2`
+                ? kSandboxBotEngines.find((engine) => engine.name === routeBotGame.engineName) ?? kSandboxBotEngines[0] ?? null
+                : null,
+        });
         setIsWelcomeModalVisible(false);
         setIsBotPanelOpen(false);
         setIsBotFactoryModalOpen(false);
@@ -644,20 +652,54 @@ function SandboxRoute() {
         setShareUrl(null);
     };
 
+    const handleOpenBotEnginePicker = (playerSlot: SandboxPlayerSlot) => {
+        setBotFactoryPickerSlot(playerSlot);
+        setIsBotFactoryModalOpen(true);
+    };
+
     const handleSelectBotEngine = (engine: SandboxBotEngineInfo | null) => {
-        setSelectedBotEngine(engine);
+        if (!botFactoryPickerSlot) {
+            setIsBotFactoryModalOpen(false);
+            return;
+        }
+
+        setSelectedBotEngines((currentEngines) => ({
+            ...currentEngines,
+            [botFactoryPickerSlot]: engine,
+        }));
         if (engine === null) {
-            setBotPlayerModes(createDefaultSandboxPlayerModes());
+            setBotPlayerModes((currentModes) => ({
+                ...currentModes,
+                [botFactoryPickerSlot]: `human`,
+            }));
         }
         setIsBotFactoryModalOpen(false);
+        setBotFactoryPickerSlot(null);
         setIsBotPanelOpen(true);
     };
 
     const handleBotPlayerModeChange = (playerSlot: SandboxPlayerSlot, nextMode: `human` | `bot`) => {
+        if (nextMode === `bot` && !selectedBotEngines[playerSlot]) {
+            handleOpenBotEnginePicker(playerSlot);
+            return;
+        }
+
         setBotPlayerModes((currentModes) => ({
             ...currentModes,
             [playerSlot]: nextMode,
         }));
+        setIsBotPanelOpen(true);
+    };
+
+    const startBotMatch = () => {
+        if (!selectedBotEngines[`player-1`] || !selectedBotEngines[`player-2`]) {
+            return;
+        }
+
+        setBotPlayerModes({
+            'player-1': `bot`,
+            'player-2': `bot`,
+        });
         setIsBotPanelOpen(true);
     };
 
@@ -759,10 +801,13 @@ function SandboxRoute() {
                         {!isWelcomeModalVisible && !isImportModalOpen && (
                             <SandboxBotFactoryModal
                                 isOpen={isBotFactoryModalOpen}
-                                onClose={() => setIsBotFactoryModalOpen(false)}
+                                onClose={() => {
+                                    setIsBotFactoryModalOpen(false);
+                                    setBotFactoryPickerSlot(null);
+                                }}
 
                                 availableEngines={kSandboxBotEngines}
-                                selectedEngine={selectedBotEngine?.name ?? null}
+                                selectedEngine={botFactoryPickerSlot ? selectedBotEngines[botFactoryPickerSlot]?.name ?? null : null}
 
                                 onSelectBotFactory={handleSelectBotEngine}
                             />
@@ -775,7 +820,7 @@ function SandboxRoute() {
                                     onOpen={() => setIsBotPanelOpen(true)}
                                     onClose={() => setIsBotPanelOpen(false)}
 
-                                    selectedFactory={selectedBotEngine ?? null}
+                                    selectedFactories={selectedBotEngines}
 
                                     botDisplayName={sandboxBotController.botDisplayName}
                                     botCapabilities={sandboxBotController.botCapabilities}
@@ -787,7 +832,8 @@ function SandboxRoute() {
                                     botTimeoutMs={botTimeoutMs}
                                     isBotThinking={isBotBusy}
                                     isCurrentTurnBotControlled={isCurrentTurnBotControlled}
-                                    onChangeBotEngine={() => setIsBotFactoryModalOpen(true)}
+                                    onChangeBotEngine={handleOpenBotEnginePicker}
+                                    onStartBotMatch={startBotMatch}
                                     onBotPlayerModeChange={handleBotPlayerModeChange}
                                     onBotTimeoutMsChange={handleBotTimeoutMsChange}
                                 />

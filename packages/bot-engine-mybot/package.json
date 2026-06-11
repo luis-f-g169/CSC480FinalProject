@@ -3,7 +3,12 @@
     "version": "0.0.0",
     "private": true,
     "type": "module",
+    "scripts": {
+        "train:heuristic": "tsx src/trainHeuristic.ts",
+        "type-check": "tsc -b"
+    },
     "dependencies": {
+        "@ih3t/bot-engine-seal": "workspace:*",
         "@ih3t/shared": "workspace:*"
     },
     "exports": {

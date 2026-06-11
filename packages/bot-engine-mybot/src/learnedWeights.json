@@ -1,0 +1,24 @@
+{
+    "version": 1,
+    "trainedAt": "2026-06-11T06:41:40.837Z",
+    "trainingSamples": 39024,
+    "completedGames": 133,
+    "trainingBudgetMs": 3600000,
+    "trainingOpponent": "seal",
+    "description": "Persisted linear value-function weights for MyBot. Run `corepack pnpm --filter @ih3t/bot-engine-mybot train:heuristic` to regenerate.",
+    "weights": [
+        -0.0791,
+        1.0592,
+        -1.0191,
+        0.3779,
+        -1.1152,
+        0.4729,
+        -1.8917,
+        -1.5982,
+        0.1461,
+        -1.2042,
+        1.0701,
+        0.1404,
+        0.7653
+    ]
+}

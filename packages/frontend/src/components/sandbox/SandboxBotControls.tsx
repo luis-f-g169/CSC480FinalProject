@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react';
 import type { SandboxPlayerMode } from '../../sandbox/sandboxBotSettings';
 
 type SandboxBotControlsProps = {
-    botDisplayName: string | null
     botCapabilities: Readonly<BotEngineCapabilities> | null
     botAvailabilityMessage: string | null
+    selectedEngineLabels: Record<SandboxPlayerSlot, string | null>
     playerModes: Record<SandboxPlayerSlot, SandboxPlayerMode>
     currentTurnPlayerSlot: SandboxPlayerSlot | null
     timeoutMs: number
@@ -14,6 +14,8 @@ type SandboxBotControlsProps = {
     isCurrentTurnBotControlled: boolean
     botErrorMessage: string | null
     onPlayerModeChange: (playerSlot: SandboxPlayerSlot, nextMode: SandboxPlayerMode) => void
+    onChangePlayerEngine: (playerSlot: SandboxPlayerSlot) => void
+    onStartBotMatch: () => void
     onTimeoutMsChange: (timeoutMs: number) => void
 };
 
@@ -35,17 +37,20 @@ const PLAYER_OPTIONS: readonly {
 ];
 
 function SandboxBotControls({
-    botDisplayName,
     botAvailabilityMessage,
+    selectedEngineLabels,
     playerModes,
     currentTurnPlayerSlot,
     timeoutMs,
     botErrorMessage,
     onPlayerModeChange,
+    onChangePlayerEngine,
+    onStartBotMatch,
     onTimeoutMsChange,
 }: Readonly<SandboxBotControlsProps>) {
-    const controlsDisabled = !botDisplayName;
-    const botButtonDisabled = controlsDisabled;
+    const hasPlayerOneEngine = Boolean(selectedEngineLabels[`player-1`]);
+    const hasPlayerTwoEngine = Boolean(selectedEngineLabels[`player-2`]);
+    const canStartBotMatch = hasPlayerOneEngine && hasPlayerTwoEngine;
 
     const [timeoutMsText, setTimeoutMsText] = useState<string | null>(null);
 
@@ -79,10 +84,30 @@ function SandboxBotControls({
                 </div>
             )}
 
-            <div className={`mt-3 grid gap-2 transition ${controlsDisabled ? `pointer-events-none opacity-40` : ``}`}>
+            <button
+                type="button"
+                disabled={!canStartBotMatch}
+                onClick={onStartBotMatch}
+                className={`mt-3 w-full rounded-[0.9rem] border px-3 py-2.5 text-sm font-semibold transition ${canStartBotMatch
+                    ? `border-sky-300/35 bg-sky-300/12 text-white hover:bg-sky-300/18`
+                    : `cursor-not-allowed border-white/8 bg-white/4 text-slate-500`
+                }`}
+            >
+                Start Bot vs Bot
+            </button>
+
+            {!canStartBotMatch && (
+                <div className="mt-2 text-[11px] leading-5 text-slate-300">
+                    Choose an engine for both players before starting a bot match.
+                </div>
+            )}
+
+            <div className="mt-3 grid gap-2 transition">
                 {PLAYER_OPTIONS.map((playerOption) => {
                     const isCurrentTurn = currentTurnPlayerSlot === playerOption.slot;
                     const selectedMode = playerModes[playerOption.slot];
+                    const selectedEngineLabel = selectedEngineLabels[playerOption.slot];
+                    const botButtonDisabled = !selectedEngineLabel;
 
                     return (
                         <div
@@ -110,15 +135,32 @@ function SandboxBotControls({
                                 )}
                             </div>
 
+                            <div className="mt-3 flex items-center justify-between gap-3 rounded-[0.8rem] border border-white/10 bg-white/5 px-3 py-2">
+                                <div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                        Engine
+                                    </div>
+
+                                    <div className="mt-0.5 text-xs font-medium text-slate-100">
+                                        {selectedEngineLabel ?? `None selected`}
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => onChangePlayerEngine(playerOption.slot)}
+                                    className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/12"
+                                >
+                                    Change
+                                </button>
+                            </div>
+
                             <div className="mt-3 grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
-                                    disabled={controlsDisabled}
                                     onClick={() => onPlayerModeChange(playerOption.slot, `human`)}
                                     className={`rounded-[0.9rem] border px-3 py-2 text-sm font-medium transition ${selectedMode === `human`
-                                        ? controlsDisabled
-                                            ? `border-white/10 bg-white/6 text-slate-200`
-                                            : `border-emerald-300/35 bg-emerald-300/10 text-white`
+                                        ? `border-emerald-300/35 bg-emerald-300/10 text-white`
                                         : `border-white/10 bg-white/6 text-slate-200 hover:bg-white/10`
                                     }`}
                                 >
@@ -144,7 +186,7 @@ function SandboxBotControls({
                 })}
             </div>
 
-            <div className={`mt-3 rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-3 transition ${controlsDisabled ? `pointer-events-none opacity-40` : ``}`}>
+            <div className="mt-3 rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-3 transition">
                 <label className="block text-[11px] uppercase tracking-[0.22em] text-slate-400" htmlFor="sandbox-bot-timeout">
                     Timeout Per Request
                 </label>
@@ -157,7 +199,6 @@ function SandboxBotControls({
                         min={100}
                         max={60000}
                         step={100}
-                        disabled={controlsDisabled}
                         value={timeoutMsText ?? timeoutMs}
 
                         onChange={(event) => setTimeoutMsText(event.target.value)}

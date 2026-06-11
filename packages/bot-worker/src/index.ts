@@ -1,6 +1,6 @@
 import createDummyEngine from "@ih3t/bot-engine-dummy";
+import createMyBotEngine, { createMdpBellmanBotEngine } from "@ih3t/bot-engine-mybot";
 import createSealEngine from "@ih3t/bot-engine-seal";
-import createMyBotEngine from "@ih3t/bot-engine-mybot";
 import type { BotEngineInterface, BotWorkerRequest, BotWorkerResponse } from "@ih3t/shared";
 
 let activeEngine: Promise<BotEngineInterface> | null = null;
@@ -14,6 +14,8 @@ async function initialize(engine: string): Promise<BotEngineInterface> {
             return await createSealEngine();
         case `mybot`:
             return await createMyBotEngine();
+        case `mdp-bellman`:
+            return await createMdpBellmanBotEngine();
         default:
             throw new Error(`Unknown engine ${engine}`);
     }

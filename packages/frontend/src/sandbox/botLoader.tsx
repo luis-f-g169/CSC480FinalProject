@@ -34,6 +34,16 @@ export const kSandboxBotEngines: readonly SandboxBotEngineInfo[] = [
             </React.Fragment>
         ),
     },
+    {
+        name: `mybot`,
+        displayName: `MyBot Learning Alpha-Beta`,
+        description: () => `A hybrid bot that uses alpha-beta pruning with a learned value function trained from deeper search labels.`,
+    },
+    {
+        name: `mdp-bellman`,
+        displayName: `MDP Bellman Bot`,
+        description: () => `A Bellman/minimax bot that searches exact finite horizons and falls back to the trained approximate value function when the state space gets too large.`,
+    },
 ];
 
 export async function createSandboxBot(engine: string): Promise<BotEngineInterface> {
