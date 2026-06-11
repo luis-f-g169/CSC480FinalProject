@@ -17,6 +17,11 @@ export const kSandboxBotEngines: readonly SandboxBotEngineInfo[] = [
         description: () => `A dummy bot implementation just placing cells as close to the center as possible.`,
     },
     {
+        name: `mybot`,
+        displayName: `MyBot AlphaBeta`,
+        description: () => `A local alpha-beta bot with tactical move ordering and pruning.`,
+    },
+    {
         name: `seal`,
         displayName: `Seal Bot`,
         description: () => (
